@@ -1,11 +1,12 @@
-const imageKit = require('@imagekit/nodejs');
+const {ImageKit} = require('@imagekit/nodejs');
 
-const storage = new imageKit({
-    privateKey: "private_XNGGhIfZtPrEWXpf7V/EMjeaemQ=",
+const imagekit = new ImageKit({
+    privateKey: process.env.PRIVATE_KEY,
 });
 
-async function uploadImage(buffer) {
-    const response = await storage.file.upload({
+async function uploadFile(buffer) {
+    console.log(buffer);
+    const response = await imagekit.files.upload({
         file: buffer.toString('base64'),
         fileName: "image.jpg",
     });
@@ -14,4 +15,4 @@ async function uploadImage(buffer) {
 
     
 
-module.exports = uploadImage;
+module.exports = uploadFile;
