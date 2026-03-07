@@ -1,45 +1,170 @@
-import React, { use, useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import axios from 'axios';
 
-const feed = () => {
-    const [posts, setPosts] = useState([
-        {
-            id: 1,
-            image: 'https://png.pngtree.com/thumb_back/fh260/background/20230411/pngtree-nature-forest-sun-ecology-image_2256183.jpg',
-            caption: 'Beautiful sunset!',
-            likes: 10,
-        }
-    ]) // State to hold the list of posts
+// React components should be PascalCase
+const Feed = () => {
+    const [posts, setPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [likedPosts, setLikedPosts] = useState(new Set());
 
-    const baseUrl = 'http://localhost:3000/';
-    const postsApi = {
-        get: '/posts',
-        post: `${baseUrl}posts`,
+    // new state for form toggling and preview
+    const [showForm, setShowForm] = useState(false);
+    const [preview, setPreview] = useState(null);
+
+    useEffect(() => {
+        axios
+            .get('http://localhost:3000/posts')
+            .then((res) => {
+                setPosts(res.data.posts);
+                setLoading(false);
+            })
+            .catch((err) => {
+                setError('Failed to load posts');
+                setLoading(false);
+            });
+    }, []);
+
+    const handleLike = (postId) => {
+        setLikedPosts((prev) => {
+            const newSet = new Set(prev);
+            if (newSet.has(postId)) {
+                newSet.delete(postId);
+            } else {
+                newSet.add(postId);
+            }
+            return newSet;
+        });
+    };
+
+    // handlers for create-post form
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setPreview(URL.createObjectURL(file));
+        }
+    };
+
+    const handleCreateSubmit = (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        axios
+            .post('http://localhost:3000/posts', formData)
+            .then((res) => {
+                // add new post to the top of the feed
+                if (res.data && res.data.post) {
+                    setPosts((prev) => [res.data.post, ...prev]);
+                }
+                setShowForm(false);
+                setPreview(null);
+            })
+            .catch((err) => {
+                console.log('Error creating post:', err);
+            });
+    };
+
+    if (loading) {
+        return (
+            <div className='feed-container'>
+                <div className='loader'></div>
+            </div>
+        );
     }
 
-    useEffect(() => {  
-        axios.get('http://localhost:3000/posts')
-           .then((res) => {
-                setPosts(res.data.posts);
-            })    
-    }, []) 
+    if (error) {
+        return (
+            <div className='feed-container'>
+                <h2 className='error-message'>{error}</h2>
+            </div>
+        );
+    }
+
     return (
-        <>
-            {
-                posts.length > 0 ? (
+        <div className='feed-container'>
+            <div className='feed-header'>
+                <h1 className='feed-title'>Your Feed</h1>
+                <button className='create-button' onClick={() => setShowForm(true)}>
+                    Create Post
+                </button>
+            </div>
 
-                    posts.map((post) => (
-                        <div key={post._id} className='post'>
-                            <img src={post.images} alt={post.caption} />
-                            <p>{post.caption}</p>
+            {showForm && (
+                <section className='createpost-section'>
+                    <h2>Create Post</h2>
+                    <form onSubmit={handleCreateSubmit}>
+                        <label className="file-input">
+                            {preview ? (
+                                <img
+                                    src={preview}
+                                    alt="preview"
+                                    className="preview-image"
+                                />
+                            ) : (
+                                <span>Click or tap to select an image</span>
+                            )}
+                            <input
+                                type="file"
+                                name='image'
+                                accept='image/*'
+                                required
+                                onChange={handleFileChange}
+                            />
+                        </label>
+                        <input
+                            type="text"
+                            name='caption'
+                            placeholder='Enter your caption'
+                            required
+                        />
+                        <div className='form-buttons'>
+                            <button type='submit'>Submit</button>
+                            <button type='button' onClick={() => { setShowForm(false); setPreview(null); }}>
+                                Cancel
+                            </button>
                         </div>
-                    ))
-                ) : (
-                    <h1>No posts available.</h1>
-                )
-            }
-        </>
-    )
-}
+                    </form>
+                </section>
+            )}
 
-export default feed
+            {posts.length > 0 ? (
+                <div className='posts-grid'>
+                    {posts.map((post) => (
+                        <div key={post._id} className='post-card'>
+                            <div className='post-image-container'>
+                                <img
+                                    src={post.images}
+                                    alt={post.caption}
+                                    className='post-image'
+                                />
+                            </div>
+                            <div className='post-content'>
+                                <p className='post-caption'>{post.caption}</p>
+                                <div className='post-footer'>
+                                    <button
+                                        className={`like-button ${
+                                            likedPosts.has(post._id) ? 'liked' : ''
+                                        }`}
+                                        onClick={() => handleLike(post._id)}
+                                    >
+                                        ❤️ {likedPosts.has(post._id) ? 'Liked' : 'Like'}
+                                    </button>
+                                    <span className='likes-count'>
+                                        {post.likes + (likedPosts.has(post._id) ? 1 : 0)}
+                                        {' '}likes
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className='no-posts'>
+                    <h2> No posts available yet</h2>
+                    <p>Be the first to create a post!</p>
+                </div>
+            )}
+        </div>
+    );
+};
+
+export default Feed
