@@ -2,7 +2,7 @@ import React, { use, useEffect, useState } from 'react'
 import axios from 'axios';
 
 const feed = () => {
-    const [posts, setposts] = useState([
+    const [posts, setPosts] = useState([
         {
             id: 1,
             image: 'https://png.pngtree.com/thumb_back/fh260/background/20230411/pngtree-nature-forest-sun-ecology-image_2256183.jpg',
@@ -13,26 +13,24 @@ const feed = () => {
 
     const baseUrl = 'http://localhost:3000/';
     const postsApi = {
-        get: `${baseUrl}posts`,
+        get: '/posts',
         post: `${baseUrl}posts`,
     }
 
-    useEffect(() => {
-        
-        axios.get(postsApi.get)
+    useEffect(() => {  
+        axios.get('http://localhost:3000/posts')
            .then((res) => {
-                console.log(res.data); 
-            })
-          
+                setPosts(res.data.posts);
+            })    
     }, []) 
     return (
-        <  >
+        <>
             {
                 posts.length > 0 ? (
 
                     posts.map((post) => (
-                        <div key={post.id} className='post'>
-                            <img src={post.image} alt={post.caption} />
+                        <div key={post._id} className='post'>
+                            <img src={post.images} alt={post.caption} />
                             <p>{post.caption}</p>
                         </div>
                     ))
